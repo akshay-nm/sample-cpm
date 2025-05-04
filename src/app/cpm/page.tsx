@@ -11,7 +11,7 @@ import ProjectOverview from "./project-overview";
 import WeekBar from "./week-bar";
 import CPMContainer from "./cpm-container";
 import { assignLanes } from "./utils/assign-vertical-levels";
-import { differenceInCalendarDays, format } from "date-fns";
+import { differenceInCalendarDays } from "date-fns";
 
 const mockActivities = [
   // Pre-Construction
@@ -138,9 +138,9 @@ export default function CPMFlow() {
       duration: t.duration,
     }))
   );
-  const longestTask = Math.max(...result.map((t) => t.ef));
   const totalDays = Math.max(...result.map((task) => task.ef));
-  const totalWidth = (longestTask + 1) * DAY_WIDTH + 300; // add more buffer!
+  const totalWeeks = Math.ceil(totalDays / 7);
+  const totalWidth = totalWeeks * 7 * DAY_WIDTH;
 
   const positionedTasks = assignLanes(result);
   const maxLane = Math.max(...positionedTasks.map((t) => t.lane)) + 1;
@@ -226,7 +226,10 @@ export default function CPMFlow() {
           />
         )}
         <div className="overflow-x-hidden w-full">
-          <div ref={containerRef} style={{ position: "relative", width: totalWidth }}>
+          <div
+            ref={containerRef}
+            style={{ position: "relative", width: totalWidth }}
+          >
             <CPMContainer totalWidth={totalWidth}>
               <div
                 ref={weekBarRef}
@@ -235,8 +238,22 @@ export default function CPMFlow() {
                   willChange: "transform",
                   transformOrigin: "0 0",
                   width: totalWidth,
+                  position: "relative",
                 }}
               >
+                {/* Orange line for today, spanning WeekBar + React Flow */}
+                <div
+                  style={{
+                    position: "absolute",
+                    left: todayX,
+                    top: 40,
+                    height:  flowHeight, 
+                    width: "2px",
+                    backgroundColor: "#fb923c",
+                    zIndex: 100,
+                    pointerEvents: "none",
+                  }}
+                />
                 <WeekBar
                   totalDays={totalDays}
                   dayWidth={DAY_WIDTH}
@@ -251,19 +268,6 @@ export default function CPMFlow() {
                   height: `${flowHeight}px`,
                 }}
               >
-                <Tippy content={`Today: ${format(today, "MMM d")}`}>
-                  <div
-                    style={{
-                      position: "absolute",
-                      top: 0,
-                      left: todayX,
-                      height: "100%",
-                      width: "2px",
-                      backgroundColor: "#fb923c",
-                      zIndex: 50,
-                    }}
-                  />
-                </Tippy>
                 <ReactFlow
                   nodes={layoutedNodes}
                   edges={layoutedEdges}
