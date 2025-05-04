@@ -1,131 +1,133 @@
-'use client';
+"use client";
 
-import { ReactFlow, Background, Controls, Node, Edge } from '@xyflow/react';
-import '@xyflow/react/dist/style.css';
-import { useMemo } from 'react';
-import { calculateCPM, CPMActivity } from './utils/cpm';
-import { getLayoutedElements } from './utils/flowLayout';
-import Tippy from '@tippyjs/react';
-import 'tippy.js/dist/tippy.css';
-import ProjectOverview from './project-overview';
-import { useState } from 'react';
-import WeekBar from './week-bar';
-import CPMContainer from './cpm-container';
-import { assignLanes } from './utils/assign-vertical-levels';
-import { differenceInCalendarDays, format } from 'date-fns';
+import { ReactFlow, Background, Controls, Node, Edge } from "@xyflow/react";
+import "@xyflow/react/dist/style.css";
+import { useMemo, useRef, useLayoutEffect, useState } from "react";
+import { calculateCPM, CPMActivity, CPMResult } from "./utils/cpm";
+import { getLayoutedElements } from "./utils/flowLayout";
+import Tippy from "@tippyjs/react";
+import "tippy.js/dist/tippy.css";
+import ProjectOverview from "./project-overview";
+import WeekBar from "./week-bar";
+import CPMContainer from "./cpm-container";
+import { assignLanes } from "./utils/assign-vertical-levels";
+import { differenceInCalendarDays, format } from "date-fns";
 
 const mockActivities = [
   // Pre-Construction
-  { id: 'P1', name: 'Site Clearing', duration: 4, dependencies: [] },
-  { id: 'P2', name: 'Soil Testing', duration: 3, dependencies: ['P1'] },
-  { id: 'P3', name: 'Site Marking', duration: 2, dependencies: ['P2'] },
+  { id: "P1", name: "Site Clearing", duration: 4, dependencies: [] },
+  { id: "P2", name: "Soil Testing", duration: 3, dependencies: ["P1"] },
+  { id: "P3", name: "Site Marking", duration: 2, dependencies: ["P2"] },
 
   // Tower A
-  { id: 'A1', name: 'Excavation - Tower A', duration: 5, dependencies: ['P3'] },
-  { id: 'A2', name: 'Foundation - Tower A', duration: 6, dependencies: ['A1'] },
+  { id: "A1", name: "Excavation - Tower A", duration: 5, dependencies: ["P3"] },
+  { id: "A2", name: "Foundation - Tower A", duration: 6, dependencies: ["A1"] },
   {
-    id: 'A3',
-    name: 'Structure - Tower A (10 floors)',
+    id: "A3",
+    name: "Structure - Tower A (10 floors)",
     duration: 30,
-    dependencies: ['A2'],
+    dependencies: ["A2"],
   },
   {
-    id: 'A4',
-    name: 'Internal Works - Tower A',
+    id: "A4",
+    name: "Internal Works - Tower A",
     duration: 12,
-    dependencies: ['A3'],
+    dependencies: ["A3"],
   },
   {
-    id: 'A5',
-    name: 'Finishing & Inspection - A',
+    id: "A5",
+    name: "Finishing & Inspection - A",
     duration: 8,
-    dependencies: ['A4'],
+    dependencies: ["A4"],
   },
 
   // Tower B
-  { id: 'B1', name: 'Excavation - Tower B', duration: 5, dependencies: ['P3'] },
-  { id: 'B2', name: 'Foundation - Tower B', duration: 6, dependencies: ['B1'] },
+  { id: "B1", name: "Excavation - Tower B", duration: 5, dependencies: ["P3"] },
+  { id: "B2", name: "Foundation - Tower B", duration: 6, dependencies: ["B1"] },
   {
-    id: 'B3',
-    name: 'Structure - Tower B (12 floors)',
+    id: "B3",
+    name: "Structure - Tower B (12 floors)",
     duration: 36,
-    dependencies: ['B2'],
+    dependencies: ["B2"],
   },
   {
-    id: 'B4',
-    name: 'Internal Works - Tower B',
+    id: "B4",
+    name: "Internal Works - Tower B",
     duration: 12,
-    dependencies: ['B3'],
+    dependencies: ["B3"],
   },
   {
-    id: 'B5',
-    name: 'Finishing & Inspection - B',
+    id: "B5",
+    name: "Finishing & Inspection - B",
     duration: 8,
-    dependencies: ['B4'],
+    dependencies: ["B4"],
   },
 
   // Tower C
-  { id: 'C1', name: 'Excavation - Tower C', duration: 5, dependencies: ['P3'] },
-  { id: 'C2', name: 'Foundation - Tower C', duration: 6, dependencies: ['C1'] },
+  { id: "C1", name: "Excavation - Tower C", duration: 5, dependencies: ["P3"] },
+  { id: "C2", name: "Foundation - Tower C", duration: 6, dependencies: ["C1"] },
   {
-    id: 'C3',
-    name: 'Structure - Tower C (14 floors)',
+    id: "C3",
+    name: "Structure - Tower C (14 floors)",
     duration: 42,
-    dependencies: ['C2'],
+    dependencies: ["C2"],
   },
   {
-    id: 'C4',
-    name: 'Internal Works - Tower C',
+    id: "C4",
+    name: "Internal Works - Tower C",
     duration: 12,
-    dependencies: ['C3'],
+    dependencies: ["C3"],
   },
   {
-    id: 'C5',
-    name: 'Finishing & Inspection - C',
+    id: "C5",
+    name: "Finishing & Inspection - C",
     duration: 8,
-    dependencies: ['C4'],
+    dependencies: ["C4"],
   },
 
   // Common Infrastructure
   {
-    id: 'I1',
-    name: 'Drainage + Water Supply',
+    id: "I1",
+    name: "Drainage + Water Supply",
     duration: 10,
-    dependencies: ['P3'],
+    dependencies: ["P3"],
   },
-  { id: 'I2', name: 'Road Work', duration: 12, dependencies: ['I1'] },
+  { id: "I2", name: "Road Work", duration: 12, dependencies: ["I1"] },
   {
-    id: 'I3',
-    name: 'Clubhouse Construction',
+    id: "I3",
+    name: "Clubhouse Construction",
     duration: 20,
-    dependencies: ['I1'],
+    dependencies: ["I1"],
   },
-  { id: 'I4', name: 'Swimming Pool', duration: 12, dependencies: ['I3'] },
-  { id: 'I5', name: 'Park & Landscaping', duration: 14, dependencies: ['I1'] },
+  { id: "I4", name: "Swimming Pool", duration: 12, dependencies: ["I3"] },
+  { id: "I5", name: "Park & Landscaping", duration: 14, dependencies: ["I1"] },
 
   // Final Handover
   {
-    id: 'H1',
-    name: 'Final Township Handover',
+    id: "H1",
+    name: "Final Township Handover",
     duration: 3,
-    dependencies: ['A5', 'B5', 'C5', 'I2', 'I4', 'I5'],
+    dependencies: ["A5", "B5", "C5", "I2", "I4", "I5"],
   },
 ];
 const DAY_WIDTH = 20;
 const ROW_HEIGHT = 150;
 
-const projectStartDate = new Date('2025-04-01'); // replace with your actual project start
+const projectStartDate = new Date("2025-04-01"); // replace with your actual project start
 const today = new Date();
 const todayIndex = differenceInCalendarDays(today, projectStartDate);
 const todayX = todayIndex * DAY_WIDTH;
 
 export default function CPMFlow() {
   const [showOverview, setShowOverview] = useState(true);
-  const result = useMemo(() => {
+  const weekBarRef = useRef<HTMLDivElement>(null);
+  type CPMStatus = "completed" | "not-started";
+  type CPMResultWithStatus = CPMResult & { status: CPMStatus };
+  const result = useMemo<CPMResultWithStatus[]>(() => {
     const base = calculateCPM(mockActivities);
     return base.map((task) => ({
       ...task,
-      status: Math.random() < 0.6 ? 'completed' : 'not-started', // or use real data
+      status: (Math.random() < 0.6 ? "completed" : "not-started") as CPMStatus,
     }));
   }, []);
   console.log(
@@ -134,7 +136,7 @@ export default function CPMFlow() {
       es: t.es,
       ef: t.ef,
       duration: t.duration,
-    })),
+    }))
   );
   const longestTask = Math.max(...result.map((t) => t.ef));
   const totalDays = Math.max(...result.map((task) => task.ef));
@@ -173,8 +175,8 @@ export default function CPMFlow() {
       padding: 6,
       borderRadius: 6,
       // background: task.isCritical ? "#f87171" : "#d1d5db",
-      color: '#1f2937',
-      border: '1px solid #ccc',
+      color: "#1f2937",
+      border: "1px solid #ccc",
     },
     draggable: false,
     selectable: false,
@@ -186,11 +188,21 @@ export default function CPMFlow() {
       source: dep,
       target: task.id,
       animated: true,
-      style: { stroke: task.isCritical ? '#f87171' : '#9ca3af' },
-    })),
+      style: { stroke: task.isCritical ? "#f87171" : "#9ca3af" },
+    }))
   );
   const layoutedNodes = nodes;
   const layoutedEdges = edges; // or "TB" for top-to-bottom
+
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [zoom, setZoom] = useState(1);
+
+  useLayoutEffect(() => {
+    if (weekBarRef.current) {
+      weekBarRef.current.style.transform = `translateX(0px) scaleX(1)`;
+    }
+  }, [totalDays, DAY_WIDTH]);
+
   return (
     <div className="p-6 space-y-6 overflow-x-auto w-full">
       {/* 🔸 Toggle Button */}
@@ -198,16 +210,39 @@ export default function CPMFlow() {
         onClick={() => setShowOverview(!showOverview)}
         className="px-4 py-2 rounded bg-orange-500 text-white font-semibold hover:brightness-110 transition"
       >
-        {showOverview ? 'Hide Overview' : 'Show Overview'}
+        {showOverview ? "Hide Overview" : "Show Overview"}
       </button>
 
       {/* 🔹 Grid Layout */}
-      <div className={`grid gap-8 ${showOverview ? 'lg:grid-cols-2' : 'grid-cols-1'} transition-all duration-300`}>
-        {showOverview && <ProjectOverview tasks={result} projectStartDate={new Date('2025-04-01')} />}
-        <div className="overflow-x-auto w-full">
-          <div style={{ position: 'relative', width: totalWidth }}>
+      <div
+        className={`grid gap-8 ${
+          showOverview ? "lg:grid-cols-2" : "grid-cols-1"
+        } transition-all duration-300`}
+      >
+        {showOverview && (
+          <ProjectOverview
+            tasks={result}
+            projectStartDate={new Date("2025-04-01")}
+          />
+        )}
+        <div className="overflow-x-hidden w-full">
+          <div ref={containerRef} style={{ position: "relative", width: totalWidth }}>
             <CPMContainer totalWidth={totalWidth}>
-              <WeekBar totalDays={totalDays} dayWidth={DAY_WIDTH} startDate={new Date('2025-04-01')} />
+              <div
+                ref={weekBarRef}
+                style={{
+                  transition: "transform 0.1s linear",
+                  willChange: "transform",
+                  transformOrigin: "0 0",
+                  width: totalWidth,
+                }}
+              >
+                <WeekBar
+                  totalDays={totalDays}
+                  dayWidth={DAY_WIDTH}
+                  startDate={new Date("2025-04-01")}
+                />
+              </div>
 
               <div
                 className="relative"
@@ -216,20 +251,38 @@ export default function CPMFlow() {
                   height: `${flowHeight}px`,
                 }}
               >
-                <Tippy content={`Today: ${format(today, 'MMM d')}`}>
+                <Tippy content={`Today: ${format(today, "MMM d")}`}>
                   <div
                     style={{
-                      position: 'absolute',
+                      position: "absolute",
                       top: 0,
                       left: todayX,
-                      height: '100%',
-                      width: '2px',
-                      backgroundColor: '#fb923c',
+                      height: "100%",
+                      width: "2px",
+                      backgroundColor: "#fb923c",
                       zIndex: 50,
                     }}
                   />
                 </Tippy>
-                <ReactFlow nodes={layoutedNodes} edges={layoutedEdges} fitView={false} panOnDrag zoomOnScroll={false}>
+                <ReactFlow
+                  nodes={layoutedNodes}
+                  edges={layoutedEdges}
+                  fitView={false}
+                  panOnDrag
+                  zoomOnScroll={false}
+                  defaultViewport={{ x: 0, y: 50, zoom: 1 }}
+                  minZoom={0.8}
+                  translateExtent={[
+                    [0, -50],
+                    [zoom < 1 ? 3100 / zoom : 3100, 1000000],
+                  ]}
+                  onMove={(_, viewport) => {
+                    setZoom(viewport.zoom);
+                    if (weekBarRef.current) {
+                      weekBarRef.current.style.transform = `translateX(${viewport.x}px) scaleX(${viewport.zoom})`;
+                    }
+                  }}
+                >
                   <Background />
                   <Controls />
                 </ReactFlow>

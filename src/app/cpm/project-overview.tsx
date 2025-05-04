@@ -1,6 +1,6 @@
 "use client";
 
-import { CPMResult } from "@/utils/cpm";
+import { CPMResult } from "./utils/cpm";
 import { format } from "date-fns";
 import { addDays } from "date-fns";
 
@@ -76,22 +76,21 @@ export default function ProjectOverview({
         <p>
           <strong>Status:</strong> {status}
         </p>
-        <p>
+        <div>
           <strong>Reason:</strong> {reason}
           {status === "Delayed" && (
-            <p className="text-sm text-red-600">
+            <span className="text-sm text-red-600">
               {lateCritical.length} critical task(s) and {lateTasks.length}{" "}
               total task(s) are behind.
-            </p>
+            </span>
           )}
           {status === "Ahead of Schedule" && mostDelayedCritical < 0 && (
             <>
               {" "}
-              — fastest critical task is ahead by{" "}
-              {Math.abs(mostDelayedCritical)} days
+              — fastest critical task is ahead by {Math.abs(mostDelayedCritical)} days
             </>
           )}
-        </p>
+        </div>
         <p>
           <strong>Estimated Completion:</strong>{" "}
           {format(estimatedCompletionDate, "MMMM d, yyyy")}
