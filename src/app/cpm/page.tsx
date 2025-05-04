@@ -1,6 +1,14 @@
 "use client";
 
-import { ReactFlow, Background, Controls, Node, Edge, useReactFlow, ReactFlowProvider } from "@xyflow/react";
+import {
+  ReactFlow,
+  Background,
+  Controls,
+  Node,
+  Edge,
+  useReactFlow,
+  ReactFlowProvider,
+} from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { useMemo, useRef, useLayoutEffect, useState, useEffect } from "react";
 import { calculateCPM, CPMActivity, CPMResult } from "./utils/cpm";
@@ -141,7 +149,7 @@ function CPMFlowInner() {
   const totalDays = Math.max(...result.map((task) => task.ef));
   const totalWeeks = Math.ceil(totalDays / 7);
   const totalWidth = totalWeeks * 7 * DAY_WIDTH;
-  console.log("totalWidth:", totalWidth)
+  console.log("totalWidth:", totalWidth);
   const positionedTasks = assignLanes(result);
   const maxLane = Math.max(...positionedTasks.map((t) => t.lane)) + 1;
   const ROW_HEIGHT = 120;
@@ -218,13 +226,20 @@ function CPMFlowInner() {
       }
     }
     updateWidths();
-    window.addEventListener('resize', updateWidths);
-    return () => window.removeEventListener('resize', updateWidths);
+    window.addEventListener("resize", updateWidths);
+    return () => window.removeEventListener("resize", updateWidths);
   }, []);
 
-  const maxPanX = containerWidth + viewportContainerWidth / zoom;
+  const maxPanX = 2 * containerWidth + 10 - viewportContainerWidth;
 
-  // console.log("containerWidth:", containerWidth, "viewportContainerWidth:", viewportContainerWidth, "maxPanX:", maxPanX);
+  console.log(
+    "containerWidth:",
+    containerWidth,
+    "viewportContainerWidth:",
+    viewportContainerWidth,
+    "maxPanX:",
+    maxPanX
+  );
 
   useLayoutEffect(() => {
     if (weekBarRef.current) {
@@ -278,7 +293,7 @@ function CPMFlowInner() {
                     position: "absolute",
                     left: todayX,
                     top: 40,
-                    height:  flowHeight, 
+                    height: flowHeight,
                     width: "2px",
                     backgroundColor: "#fb923c",
                     zIndex: 100,
