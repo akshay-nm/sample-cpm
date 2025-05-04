@@ -1,8 +1,8 @@
 "use client";
 
-import { ReactFlow, Background, Controls, Node, Edge } from "@xyflow/react";
+import { ReactFlow, Background, Controls, Node, Edge, useReactFlow, ReactFlowProvider } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { useMemo, useRef, useLayoutEffect, useState } from "react";
+import { useMemo, useRef, useLayoutEffect, useState, useEffect } from "react";
 import { calculateCPM, CPMActivity, CPMResult } from "./utils/cpm";
 import { getLayoutedElements } from "./utils/flowLayout";
 import Tippy from "@tippyjs/react";
@@ -118,7 +118,7 @@ const today = new Date();
 const todayIndex = differenceInCalendarDays(today, projectStartDate);
 const todayX = todayIndex * DAY_WIDTH;
 
-export default function CPMFlow() {
+function CPMFlowInner() {
   const [showOverview, setShowOverview] = useState(true);
   const weekBarRef = useRef<HTMLDivElement>(null);
   type CPMStatus = "completed" | "not-started";
@@ -141,7 +141,7 @@ export default function CPMFlow() {
   const totalDays = Math.max(...result.map((task) => task.ef));
   const totalWeeks = Math.ceil(totalDays / 7);
   const totalWidth = totalWeeks * 7 * DAY_WIDTH;
-
+  console.log("totalWidth:", totalWidth)
   const positionedTasks = assignLanes(result);
   const maxLane = Math.max(...positionedTasks.map((t) => t.lane)) + 1;
   const ROW_HEIGHT = 120;
@@ -195,13 +195,44 @@ export default function CPMFlow() {
   const layoutedEdges = edges; // or "TB" for top-to-bottom
 
   const containerRef = useRef<HTMLDivElement>(null);
+  const viewportContainerRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState(0);
+  const [viewportContainerWidth, setViewportContainerWidth] = useState(0);
   const [zoom, setZoom] = useState(1);
+
+  const { setViewport } = useReactFlow();
+
+  useEffect(() => {
+    if (containerWidth && viewportContainerWidth) {
+      setViewport({ x: 0, y: 50, zoom: 1 });
+    }
+  }, [containerWidth, viewportContainerWidth, setViewport]);
+
+  useLayoutEffect(() => {
+    function updateWidths() {
+      if (containerRef.current) {
+        setContainerWidth(containerRef.current.offsetWidth);
+      }
+      if (viewportContainerRef.current) {
+        setViewportContainerWidth(viewportContainerRef.current.offsetWidth);
+      }
+    }
+    updateWidths();
+    window.addEventListener('resize', updateWidths);
+    return () => window.removeEventListener('resize', updateWidths);
+  }, []);
+
+  const maxPanX = containerWidth + viewportContainerWidth / zoom;
+
+  // console.log("containerWidth:", containerWidth, "viewportContainerWidth:", viewportContainerWidth, "maxPanX:", maxPanX);
 
   useLayoutEffect(() => {
     if (weekBarRef.current) {
       weekBarRef.current.style.transform = `translateX(0px) scaleX(1)`;
     }
   }, [totalDays, DAY_WIDTH]);
+
+  console.log("WeekBar width (totalDays * DAY_WIDTH):", totalDays * DAY_WIDTH);
 
   return (
     <div className="p-6 space-y-6 overflow-x-auto w-full">
@@ -225,7 +256,7 @@ export default function CPMFlow() {
             projectStartDate={new Date("2025-04-01")}
           />
         )}
-        <div className="overflow-x-hidden w-full">
+        <div className="overflow-x-hidden w-full" ref={viewportContainerRef}>
           <div
             ref={containerRef}
             style={{ position: "relative", width: totalWidth }}
@@ -278,7 +309,7 @@ export default function CPMFlow() {
                   minZoom={0.8}
                   translateExtent={[
                     [0, -50],
-                    [zoom < 1 ? 3100 / zoom : 3100, 1000000],
+                    [maxPanX, 1000000],
                   ]}
                   onMove={(_, viewport) => {
                     setZoom(viewport.zoom);
@@ -296,5 +327,13 @@ export default function CPMFlow() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function CPMFlow() {
+  return (
+    <ReactFlowProvider>
+      <CPMFlowInner />
+    </ReactFlowProvider>
   );
 }
