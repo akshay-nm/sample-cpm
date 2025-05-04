@@ -228,9 +228,9 @@ function CPMFlowInner() {
     updateWidths();
     window.addEventListener("resize", updateWidths);
     return () => window.removeEventListener("resize", updateWidths);
-  }, []);
+  }, [showOverview]);
 
-  const maxPanX = 2 * containerWidth + 10 - viewportContainerWidth;
+  const maxPanX = (2 * containerWidth + 10 - viewportContainerWidth) + 1115 * (1 - zoom);
 
   console.log(
     "containerWidth:",
