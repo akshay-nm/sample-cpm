@@ -291,7 +291,7 @@ function CPMFlowInner() {
                 <div
                   style={{
                     position: "absolute",
-                    left: todayX,
+                    left: todayX - 50,
                     top: 40,
                     height: flowHeight,
                     width: "2px",
