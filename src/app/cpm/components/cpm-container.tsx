@@ -1,4 +1,3 @@
-// components/CPMContainer.tsx
 import { ReactNode } from "react";
 
 type CPMContainerProps = {

@@ -1,6 +1,6 @@
 "use client";
 
-import { CPMResult } from "./utils/cpm";
+import { CPMResult } from "../utils/cpm";
 import { format } from "date-fns";
 import { addDays } from "date-fns";
 
@@ -37,7 +37,7 @@ export default function ProjectOverview({
   const actualDuration = Math.ceil(
     (today.getTime() - projectStartDate.getTime()) / (1000 * 60 * 60 * 24)
   );
-  const projectDrift = actualDuration - totalDuration;
+  // const projectDrift = actualDuration - totalDuration;
 
   const mostDelayedCritical =
     criticalTasks
@@ -87,7 +87,8 @@ export default function ProjectOverview({
           {status === "Ahead of Schedule" && mostDelayedCritical < 0 && (
             <>
               {" "}
-              — fastest critical task is ahead by {Math.abs(mostDelayedCritical)} days
+              — fastest critical task is ahead by{" "}
+              {Math.abs(mostDelayedCritical)} days
             </>
           )}
         </div>
